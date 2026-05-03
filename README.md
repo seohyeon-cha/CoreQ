@@ -6,10 +6,11 @@ The code reproduces the LLaMA-family results reported in the paper.
 
 CoreQ has two ingredients:
 
-1. **Learning-free mismatch correction** — a closed-form, per-row
-   coefficient α derived from a local SNR estimate that augments the
-   GPTQ/LDLQ rounding rule with a cross-layer correction term. Implemented
-   in `algorithms/coreq.py`.
+1. **Learning-free mismatch correction** — a closed-form, per-layer
+   coefficient α derived from a local correlation estimate. In this
+   implementation α is a single scalar per linear sub-module, obtained by
+   summing the correlation statistics over all rows and columns of that
+   module. Implemented in `algorithms/coreq.py`.
 2. **Successive (beam) rounding** — a row-wise beam search over the
    discrete codewords that refines the CoreQ solution. Implemented in
    `algorithms/coreq_beam.py`.

@@ -2,10 +2,12 @@
 
 Given the calibration Hessian ``H = X X^T`` from the quantized forward pass
 and the cross statistic ``dXXT = (X_fp - X_q) X^T`` from the
-full-precision pass, CoreQ picks a per-row coefficient α (closed form,
-selected via ``alpha_method``):
+full-precision pass, CoreQ picks a single per-layer coefficient α (one
+scalar per linear sub-module, computed by summing the correlation
+statistics over all rows and columns of that module). ``alpha_method``
+selects how α is set:
 
-  * ``corr``  — α from a local correlation / SNR estimate, clamped to ``[0, 1]``.
+  * ``corr``  — α from a local correlation estimate, clamped to ``[0, 1]``.
   * ``fixed`` — use the user-supplied ``--alpha``.
 
 The corrected continuous target ``W' = W + α * dXXT @ H^{-1}`` is then
