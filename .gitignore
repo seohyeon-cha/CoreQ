@@ -1,0 +1,35 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Run artefacts
+logs/
+plots/
+figures/
+ckpts/
+cache/
+wandb/
+
+# Saved checkpoints / large files
+*.safetensors
+*.pt
+*.pth
