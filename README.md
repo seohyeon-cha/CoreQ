@@ -4,6 +4,8 @@ This repository contains the reference implementation of **CoreQ**, a
 post-training weight-only quantization method for large language models.
 The code reproduces the LLaMA-family results reported in the paper.
 
+![CoreQ framework](figures/CoreQ_framework.png)
+
 CoreQ has two ingredients:
 
 1. **Learning-free mismatch correction** — a closed-form, per-layer
@@ -39,6 +41,7 @@ and GuidedQuant for comparison.
 │   ├── l2-13b/               #   Llama-2-13B
 │   ├── l3-8b/                #   Llama-3-8B
 │   └── l2-70b/               #   Llama-2-70B
+├── figures/                  # Framework diagram (PDF + PNG)
 ├── requirements.txt
 └── README.md
 ```
