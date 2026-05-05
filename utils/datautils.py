@@ -1,14 +1,15 @@
 import datasets
 import random
 import transformers
-import torch 
+import torch
+
 
 def get_wikitext2(nsamples, seed, seqlen, model, hf_token, eval_mode=False):
-    
+
     if hf_token is None:
-        tokenizer = transformers.AutoTokenizer.from_pretrained(model, use_fast=False)
+        tokenizer = transformers.AutoTokenizer.from_pretrained(model, use_fast=True)
     else:
-        tokenizer = transformers.AutoTokenizer.from_pretrained(model, use_fast=False, use_auth_token=hf_token)
+        tokenizer = transformers.AutoTokenizer.from_pretrained(model, use_fast=True, use_auth_token=hf_token)
         
     if eval_mode:
         testdata = datasets.load_dataset('wikitext', 'wikitext-2-raw-v1', split='test')
@@ -36,7 +37,7 @@ def get_ptb(nsamples, seed, seqlen, model):
                            split='validation')
 
     from transformers import AutoTokenizer
-    tokenizer = AutoTokenizer.from_pretrained(model, use_fast=False)
+    tokenizer = AutoTokenizer.from_pretrained(model, use_fast=True)
     trainenc = tokenizer("\n\n".join(traindata['sentence']),
                          return_tensors='pt')
     testenc = tokenizer("\n\n".join(valdata['sentence']), return_tensors='pt')
@@ -57,9 +58,9 @@ def get_ptb(nsamples, seed, seqlen, model):
 def get_c4(nsamples, seed, seqlen, model, hf_token=None, eval_mode=False):
 
     if hf_token is None:
-        tokenizer = transformers.AutoTokenizer.from_pretrained(model, use_fast=False)
+        tokenizer = transformers.AutoTokenizer.from_pretrained(model, use_fast=True)
     else:
-        tokenizer = transformers.AutoTokenizer.from_pretrained(model, use_fast=False, use_auth_token=hf_token)
+        tokenizer = transformers.AutoTokenizer.from_pretrained(model, use_fast=True, use_auth_token=hf_token)
 
     if eval_mode:
         valdata = datasets.load_dataset(
@@ -116,9 +117,9 @@ def get_c4(nsamples, seed, seqlen, model, hf_token=None, eval_mode=False):
 def get_c4_new(nsamples, seed, seqlen, model, hf_token=None, eval_mode=False):
 
     if hf_token is None:
-        tokenizer = transformers.AutoTokenizer.from_pretrained(model, use_fast=False)
+        tokenizer = transformers.AutoTokenizer.from_pretrained(model, use_fast=True)
     else:
-        tokenizer = transformers.AutoTokenizer.from_pretrained(model, use_fast=False, use_auth_token=hf_token)
+        tokenizer = transformers.AutoTokenizer.from_pretrained(model, use_fast=True, use_auth_token=hf_token)
 
     if eval_mode:
         valdata = datasets.load_dataset(
@@ -156,9 +157,9 @@ def get_ptb_new(nsamples, seed, seqlen, model, hf_token, eval_mode=False):
     
         
     if hf_token is None:
-        tokenizer = transformers.AutoTokenizer.from_pretrained(model, use_fast=False)
+        tokenizer = transformers.AutoTokenizer.from_pretrained(model, use_fast=True)
     else:
-        tokenizer = transformers.AutoTokenizer.from_pretrained(model, use_fast=False, use_auth_token=hf_token)
+        tokenizer = transformers.AutoTokenizer.from_pretrained(model, use_fast=True, use_auth_token=hf_token)
     
     if eval_mode:
         testdata = datasets.load_dataset('ptb_text_only', 'penn_treebank', split='test')

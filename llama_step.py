@@ -60,6 +60,8 @@ def llama_sequential(model, dataloader, dev, fp_path):
 
     model.model.embed_tokens = model.model.embed_tokens.to(dev)
     model.model.norm = model.model.norm.to(dev)
+    if hasattr(model.model, 'rotary_emb') and model.model.rotary_emb is not None:
+        model.model.rotary_emb = model.model.rotary_emb.to(dev)
     layers[0] = layers[0].to(dev)
 
     dtype = next(iter(model.parameters())).dtype
@@ -448,6 +450,8 @@ def llama_eval(model, testenc, dev):
     layers = model.model.layers
 
     model.model.embed_tokens = model.model.embed_tokens.to(dev)
+    if hasattr(model.model, 'rotary_emb') and model.model.rotary_emb is not None:
+        model.model.rotary_emb = model.model.rotary_emb.to(dev)
     layers[0] = layers[0].to(dev)
 
     dtype = next(iter(model.parameters())).dtype
@@ -1149,7 +1153,7 @@ if __name__ == '__main__':
             model = model.to(DEV)
 
         from transformers import LlamaTokenizer, TextStreamer
-        tokenizer = LlamaTokenizer.from_pretrained(args.model, use_fast=False)
+        tokenizer = LlamaTokenizer.from_pretrained(args.model, use_fast=True)
         input_ids = tokenizer(["The capital of New Mexico is"], return_tensors="pt").input_ids.to(gpus[0])
         streamer = TextStreamer(tokenizer)
         with torch.no_grad():
@@ -1162,7 +1166,7 @@ if __name__ == '__main__':
     if not args.observe and args.save:
         # import pdb; pdb.set_trace()
         model.save_pretrained(f'ckpts/{args.save}')
-        tokenizer = transformers.AutoTokenizer.from_pretrained(args.model, use_fast=False, use_auth_token=getattr(args, 'hf_token', None))
+        tokenizer = transformers.AutoTokenizer.from_pretrained(args.model, use_fast=True, use_auth_token=getattr(args, 'hf_token', None))
         tokenizer.save_pretrained(f'ckpts/{args.save}')
         # llama_6(model, quantizers, args.wbits, args.groupsize)
         # torch.save(model.state_dict(), args.save)
@@ -1185,7 +1189,7 @@ if __name__ == '__main__':
         torch.cuda.empty_cache()
 
         tokenizer = transformers.AutoTokenizer.from_pretrained(
-            args.model, use_fast=False, use_auth_token=getattr(args, 'hf_token', None)
+            args.model, use_fast=True, use_auth_token=getattr(args, 'hf_token', None)
         )
 
         use_cpu = bool(args.lm_eval_cpu)

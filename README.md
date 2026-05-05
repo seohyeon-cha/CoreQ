@@ -60,7 +60,7 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-The `fast_hadamard_transform` package is installed from source. 
+The `fast_hadamard_transform` package is installed from source.
 
 ---
 
