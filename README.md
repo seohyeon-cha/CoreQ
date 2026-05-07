@@ -143,20 +143,12 @@ CoreQ supports two modes for the mismatch-correction coefficient α:
 
 ---
 
-## Reproducing the main table
+## Code references and acknowledgments
 
-The default values in each script reproduce the numbers reported in the
-paper (3-bit per-channel symmetric quantization, 128 C4 calibration
-samples, averaged over the seeds reported in the paper). For 2-bit
-results, override with `WBITS=2`; for groupwise results, set
-`GROUPSIZE=128`.
+Our code is implemented based on the following open-source repositories,
+and we thank the authors for releasing their work:
 
----
+- [GPTQ](https://github.com/ist-daslab/gptq)
+- [QuIP](https://github.com/Cornell-RelaxML/QuIP)
+- [GPTAQ](https://github.com/Intelligent-Computing-Lab-Panda/GPTAQ)
 
-## Notes on the code
-
-- `algorithms/*.py` each carry a top-of-file docstring explaining the
-  algorithm and its hyperparameters.
-- `llama_step.py::llama_sequential` implements the per-block layer-wise
-  quantization loop (forward-hook → accumulate `H` → call `fasterquant` →
-  rerun the quantized block).
