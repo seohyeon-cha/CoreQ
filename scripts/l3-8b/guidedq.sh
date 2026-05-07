@@ -1,8 +1,3 @@
-#!/usr/bin/env bash
-# GuidedQuant baseline on Llama-3-8B.
-# Requires precomputed saliency tensors in $SALIENCY_PATH (one l{i}.pt
-# per transformer block), produced by an external precomputation step.
-set -euo pipefail
 
 MODEL_PATH=${MODEL_PATH:-"meta-llama/Meta-Llama-3-8B"}
 DATASET=${DATASET:-c4}

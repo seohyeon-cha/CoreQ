@@ -1,7 +1,3 @@
-#!/usr/bin/env bash
-# GPTAQ baseline on Llama-3-8B (3-bit, per-channel symmetric).
-# ALPHA controls the weight-correction coefficient.
-set -euo pipefail
 
 MODEL_PATH=${MODEL_PATH:-"meta-llama/Meta-Llama-3-8B"}
 DATASET=${DATASET:-c4}

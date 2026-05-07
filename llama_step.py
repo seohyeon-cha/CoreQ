@@ -865,18 +865,69 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
+    # ------------------------------------------------------------------
+    # Model & calibration data
+    # ------------------------------------------------------------------
     parser.add_argument('model', type=str, help='llama model to load')
     parser.add_argument('dataset', type=str, choices=['wikitext2', 'ptb', 'c4'], help='Where to extract calibration data from.')
     parser.add_argument('--seed', type=int, default=0, help='Seed for sampling the calibration data.')
     parser.add_argument('--nsamples', type=int, default=128, help='Number of calibration data samples.')
-    parser.add_argument('--percdamp', type=float, default=.01, help='Percent of the average Hessian diagonal to use for dampening.')
-    parser.add_argument('--nearest', action='store_true', help='Whether to run the RTN baseline.')
+
+    # ------------------------------------------------------------------
+    # Quantization scheme (bit-width, grouping, scales, ordering)
+    # ------------------------------------------------------------------
     parser.add_argument('--wbits', type=int, default=16, choices=[2, 3, 4, 5, 6, 7, 8, 16], help='#bits to use for quantization; use 16 for evaluating base model.')
-    parser.add_argument('--trits', action='store_true', help='Whether to use trits for quantization.')
-    parser.add_argument('--w_clip', action='store_true', help='Whether to run the RTN baseline.')
     parser.add_argument('--groupsize', type=int, default=-1, help='Groupsize to use for quantization; default uses full row.')
+    parser.add_argument('--sym', action='store_true', help='Whether to perform symmetric quantization.')
+    parser.add_argument('--w_clip', action='store_true', help='Enable MSE-based clipping search when configuring per-channel scales.')
+    parser.add_argument('--percdamp', type=float, default=.01, help='Percent of the average Hessian diagonal to use for dampening.')
+    parser.add_argument('--act-order', action='store_true', help='Whether to apply the activation order GPTQ heuristic')
+    parser.add_argument('--true-sequential', action='store_true', help='Whether to run in true sequential model.')
+    parser.add_argument('--nearest', action='store_true', help='Whether to run the RTN baseline.')
+
+    # ------------------------------------------------------------------
+    # Method selection
+    # ------------------------------------------------------------------
+    parser.add_argument('--method', type=str, default='', choices=['', 'gptq', 'ldlq', 'gptaq', 'guidedq', 'coreq', 'coreq_beam'], help='Quantization method to run.')
+
+    # ------------------------------------------------------------------
+    # CoreQ / GPTAQ — mismatch-correction coefficient α
+    # ------------------------------------------------------------------
+    parser.add_argument(
+        '--alpha-method',
+        type=str,
+        default='corr',
+        choices=['fixed', 'corr'],
+        help='α selection: "corr" (default) is the data-driven CoreQ α; "fixed" uses --alpha as-is.',
+    )
+    parser.add_argument('--alpha', type=float, default=0.25, help='Coefficient for the weight-correction term (used when --alpha-method fixed).')
+    parser.add_argument('--cd_passes', type=int, default=0, help='Number of coordinate-descent passes for CoreQ.')
+
+    # ------------------------------------------------------------------
+    # CoreQ beam search (--method coreq_beam)
+    # ------------------------------------------------------------------
+    parser.add_argument('--beam-size', type=int, default=1, help='Beam width for successive rounding (--method coreq_beam). 1 falls back to single-path CoreQ.')
+    parser.add_argument('--beam-cands', type=int, default=3, help='Number of candidate codewords expanded per row at each beam step.')
+    parser.add_argument('--nn_beam', action='store_true', help='Use nearest-neighbor candidate selection instead of probabilistic sampling within the beam.')
+
+    # ------------------------------------------------------------------
+    # GuidedQuant (--method guidedq)
+    # ------------------------------------------------------------------
+    parser.add_argument('--saliency-path', type=str, default='cache/saliency', help='Directory of precomputed per-block saliency tensors (used by --method guidedq).')
+    parser.add_argument('--guided-num-groups', type=int, default=4, help='Number of saliency groups for --method guidedq.')
+
+    # ------------------------------------------------------------------
+    # Incoherence processing (QuIP-style pre/post rotation)
+    # ------------------------------------------------------------------
+    parser.add_argument('--incoh-process', action='store_true', help='Whether to perform incoherence process.')
+    parser.add_argument('--incoh-mode', type=str, default='kron', choices=['had', 'kron'], help='Incoherence mode (Hadamard or Kronecker).')
+    parser.add_argument('--rescale-WH', action='store_true', help='Rescale W and H to minimize the proxy loss prior to rounding.')
+
+    # ------------------------------------------------------------------
+    # Evaluation
+    # ------------------------------------------------------------------
     parser.add_argument('--eval', action='store_true', help='evaluate quantized model.')
-    parser.add_argument('--test-generation', action='store_true', help='test generation.')
+    parser.add_argument('--new-eval', action='store_true', help='Whether to use the new PTB and C4 eval')
     parser.add_argument('--lm-eval', action='store_true', help='evaluate quantized model using lm_eval.')
     parser.add_argument('--lm-eval-batch-size', type=int, default=32, help='Batch size for lm_eval.')
     parser.add_argument(
@@ -893,57 +944,44 @@ if __name__ == '__main__':
         '--tasks',
         nargs='+',
         default=["piqa", "arc_easy", "arc_challenge", "hellaswag", "winogrande", "boolq"],
-        help='Tasks for lm_eval. Use format "task_name:num_fewshot" for few-shot tasks (e.g., "mmlu:5" for 5-shot MMLU).'   
+        help='Tasks for lm_eval. Use format "task_name:num_fewshot" for few-shot tasks (e.g., "mmlu:5" for 5-shot MMLU).'
     )
     parser.add_argument('--num-fewshot', type=int, default=0,
                         help='Global few-shot for lm_eval tasks.')
+    parser.add_argument('--test-generation', action='store_true', help='test generation.')
+    parser.add_argument('--benchmark', type=int, default=0, help='Number of tokens to use for benchmarking.')
+    parser.add_argument('--check', action='store_true', help='Whether to compute perplexity during benchmarking for verification.')
+
+    # ------------------------------------------------------------------
+    # Diagnostics & plotting (paper figures)
+    # ------------------------------------------------------------------
+    parser.add_argument('--plot-delta-x', action='store_true', help='Whether to plot delta X values and generate 3D plots of |X_q - X_f|')
+    parser.add_argument('--plot-delta-x-path', type=str, default='plots/delta_x', help='Directory path to save delta X plots')
+    parser.add_argument('--eval-mae-validation', action='store_true', help='Collect MAE on C4 validation set and save for unified plotting')
+    parser.add_argument('--plot-unified-mae', type=str, default='', help='Path to directory containing pickle files with MAE data to plot. Files should be named like "validation_mae_alpha{alpha}.pkl"')
+
+    # ------------------------------------------------------------------
+    # Checkpoint I/O
+    # ------------------------------------------------------------------
     parser.add_argument('--save', type=str, default='', help='Save quantized checkpoint under this name.')
     parser.add_argument('--save_safetensors', type=str, default='', help='Save quantized `.safetensors` checkpoint under this name.')
     parser.add_argument('--load', type=str, default='', help='Load quantized model.')
-    parser.add_argument('--benchmark', type=int, default=0, help='Number of tokens to use for benchmarking.')
-    parser.add_argument('--check', action='store_true', help='Whether to compute perplexity during benchmarking for verification.')
-    parser.add_argument('--sym', action='store_true', help='Whether to perform symmetric quantization.')
-    parser.add_argument('--act-order', action='store_true', help='Whether to apply the activation order GPTQ heuristic')
-    parser.add_argument('--true-sequential', action='store_true', help='Whether to run in true sequential model.')
-    parser.add_argument('--new-eval', action='store_true', help='Whether to use the new PTB and C4 eval')
+    parser.add_argument('--quant-directory', type=str, default=None, help='Specify the directory for export quantization parameters to toml format. `None` means no export by default.')
+
+    # ------------------------------------------------------------------
+    # Runtime / advanced
+    # ------------------------------------------------------------------
     parser.add_argument('--layers-dist', type=str, default='', help='Distribution of layers across GPUs. e.g. 2:1:1 for 2 layers on GPU 0, 1 layer on GPU 1, and 1 layer on GPU 2. Any remaining layers will be assigned to your last GPU.')
     parser.add_argument('--observe',
                         action='store_true',
                         help='Auto upgrade layer precision to higher precision, for example int2 to int4, groupsize 128 to 64. \
             When this feature enabled, `--save` or `--save_safetensors` would be disable.')
-    parser.add_argument('--quant-directory', type=str, default=None, help='Specify the directory for export quantization parameters to toml format. `None` means no export by default.')
-    parser.add_argument('--step', action='store_true', help='')
-    parser.add_argument('--step_bits', type=int, default=8)
-    parser.add_argument('--method', type=str, default='', help='Method to use for quantization.')
-    parser.add_argument('--sort-asym', action='store_true', help='Whether to sort asymmetric quantization levels.')
-    parser.add_argument(
-        '--alpha-method',
-        type=str,
-        default='corr',
-        choices=['fixed', 'corr'],
-        help='α selection: "corr" (default) is the data-driven CoreQ α; "fixed" uses --alpha as-is.',
-    )
-    parser.add_argument('--alpha', type=float, default=0.25, help='Coefficient for the weight-correction term (used when --alpha-method fixed).')
-    parser.add_argument('--cd_passes', type=int, default=0, help='Number of coordinate-descent passes for CoreQ.')
-    parser.add_argument('--saliency-path', type=str, default='cache/saliency', help='Directory of precomputed per-block saliency tensors (used by --method guidedq).')
-    parser.add_argument('--guided-num-groups', type=int, default=4, help='Number of saliency groups for --method guidedq.')
-    # for beam search
-    parser.add_argument('--beam-size', type=int, default=1, help='Coefficient for weight correction term')
-    parser.add_argument('--beam-cands', type=int, default=3, help='Coefficient for weight correction term')
-    parser.add_argument('--beam-sigma', type=float, default=0.25, help='Coefficient for weight correction term')
-    parser.add_argument('--beam-k', type=int, default=16, help='Coefficient for weight correction term')
-    parser.add_argument('--nn_beam', action='store_true', help='Whether to plot delta X values and generate 3D plots of |X_q - X_f|')
+    parser.add_argument('--step', action='store_true', help='Warm-start re-quantization from a higher-precision checkpoint loaded via --load (precision given by --step_bits).')
+    parser.add_argument('--step_bits', type=int, default=8, help='Bit-width of the warm-start checkpoint loaded with --step (default: 8).')
 
-    parser.add_argument('--incoh-process', action='store_true', help='Whether to perform incoherence process.')
-    parser.add_argument('--incoh-mode', type=str, default='kron', choices=['had', 'kron'], help='Incoherence mode (Hadamard or Kronecker).')
-    parser.add_argument('--rescale-WH', action='store_true', help='Whether to rescale W and H to minimize proxy loss.')
-    parser.add_argument('--rescale-D', action='store_true', help='Whether to rescale W and H to minimize proxy loss.')
-    parser.add_argument('--plot-delta-x', action='store_true', help='Whether to plot delta X values and generate 3D plots of |X_q - X_f|')
-    parser.add_argument('--plot-delta-x-path', type=str, default='plots/delta_x', help='Directory path to save delta X plots')
-    parser.add_argument('--eval-mae-validation', action='store_true', help='Collect MAE on C4 validation set and save for unified plotting')
-    parser.add_argument('--plot-unified-mae', type=str, default='', help='Path to directory containing pickle files with MAE data to plot. Files should be named like "validation_mae_alpha{alpha}.pkl"')
-    parser.add_argument('--ours', action='store_true', help='Use our method')
-    parser.add_argument('--ours_v2', action='store_true', help='Use our method')
+    # ------------------------------------------------------------------
+    # Logging (Weights & Biases)
+    # ------------------------------------------------------------------
     parser.add_argument('--wandb', action='store_true', help='Enable wandb logging')
     parser.add_argument('--wandb-project', type=str, default='llm-quantization', help='Wandb project name')
     parser.add_argument('--wandb-name', type=str, default='', help='Wandb run name (default: auto-generated)')
@@ -969,7 +1007,6 @@ if __name__ == '__main__':
                 'true_sequential': args.true_sequential,
                 'incoh_process': args.incoh_process,
                 'incoh_mode': args.incoh_mode,
-                'rescale_D': args.rescale_D,
                 'beam_size': args.beam_size,
                 'beam_cands': args.beam_cands, 
                 'nn_beam': args.nn_beam,

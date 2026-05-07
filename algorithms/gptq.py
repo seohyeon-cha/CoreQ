@@ -1,6 +1,4 @@
 """Per-layer GPTQ rounding.
-
-The class :class:`GPTQ`:
   * Accumulates the calibration Hessian ``H = X X^T`` from forward
     activations via :meth:`add_batch`.
   * In :meth:`fasterquant`, performs Cholesky-based block-wise rounding:

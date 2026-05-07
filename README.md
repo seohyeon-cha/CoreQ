@@ -51,9 +51,9 @@ Six algorithms are supported via `--method`: `gptq`, `ldlq`, `gptaq`,
 ## Installation
 
 ```bash
-# Create a fresh environment (Python 3.10+)
-python -m venv .venv
-source .venv/bin/activate
+# Create a fresh conda environment (Python 3.10+)
+conda create -n coreq python=3.10 -y
+conda activate coreq
 
 # Install dependencies (CUDA 12.4 wheels assumed for torch/triton)
 pip install --upgrade pip

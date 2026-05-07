@@ -1,7 +1,3 @@
-#!/usr/bin/env bash
-# CoreQ (no beam search) on Llama-3-8B.
-# ALPHA_METHOD=corr selects the data-driven, per-layer α from the paper (one scalar per linear sub-module).
-set -euo pipefail
 
 MODEL_PATH=${MODEL_PATH:-"meta-llama/Meta-Llama-3-8B"}
 DATASET=${DATASET:-c4}

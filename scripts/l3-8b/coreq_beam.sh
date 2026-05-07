@@ -1,7 +1,3 @@
-#!/usr/bin/env bash
-# CoreQ with successive (beam) rounding on Llama-3-8B.
-# Set BEAM_SIZE > 1 to enable multi-beam search per block.
-set -euo pipefail
 
 MODEL_PATH=${MODEL_PATH:-"meta-llama/Meta-Llama-3-8B"}
 DATASET=${DATASET:-c4}

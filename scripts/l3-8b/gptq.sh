@@ -1,7 +1,3 @@
-#!/usr/bin/env bash
-# GPTQ baseline on Llama-3-8B (3-bit, per-channel symmetric).
-# Override values from the command line, e.g.: WBITS=4 GROUPSIZE=128 ./scripts/l2-7b/gptq.sh
-set -euo pipefail
 
 MODEL_PATH=${MODEL_PATH:-"meta-llama/Meta-Llama-3-8B"}
 DATASET=${DATASET:-c4}

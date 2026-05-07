@@ -1,6 +1,3 @@
-#!/usr/bin/env bash
-# LDLQ baseline on Llama-3-8B (3-bit, per-channel symmetric).
-set -euo pipefail
 
 MODEL_PATH=${MODEL_PATH:-"meta-llama/Meta-Llama-3-8B"}
 DATASET=${DATASET:-c4}
