@@ -1,4 +1,4 @@
-# [NeurIPS 2026 Spotlight] CoreQ: Learning-Free Mismatch Correction and Successive Rounding for Post-Training Quantization
+# [NeurIPS 2026 Spotlight] CoreQ: Mismatch-Corrected Successive Rounding for LLM Quantization
 
 This repository contains the reference implementation of **CoreQ**, a
 post-training weight-only quantization method for large language models.
